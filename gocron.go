@@ -64,10 +64,12 @@ type Job struct {
 
 	// Map for function and  params of function
 	Fparams map[string]([]interface{})
+
+	JobID int
 }
 
 // Create a new job with the time interval.
-func NewJob(intervel uint64) *Job {
+func NewJob(intervel uint64, jobID int) *Job {
 	return &Job{
 		intervel,
 		"", "", "",
@@ -76,6 +78,7 @@ func NewJob(intervel uint64) *Job {
 		time.Sunday,
 		make(map[string]interface{}),
 		make(map[string]([]interface{})),
+		jobID,
 	}
 }
 
@@ -85,7 +88,7 @@ func (j *Job) shouldRun() bool {
 }
 
 //Run the job and immdiately reschedulei it
-func (j *Job) run() (result []reflect.Value, err error) {
+func (j *Job) Run() (result []reflect.Value, err error) {
 	f := reflect.ValueOf(j.Funcs[j.JobFunc])
 	params := j.Fparams[j.JobFunc]
 	if len(params) != f.Type().NumIn() {
@@ -400,8 +403,8 @@ func (s *Scheduler) NextRun() (*Job, time.Time) {
 }
 
 // Schedule a new periodic job
-func (s *Scheduler) Every(interval uint64) *Job {
-	job := NewJob(interval)
+func (s *Scheduler) Every(interval uint64, jobID int) *Job {
+	job := NewJob(interval, jobID)
 	s.Jobs[s.size] = job
 	s.size++
 	return job
@@ -413,7 +416,7 @@ func (s *Scheduler) RunPending() {
 
 	if n != 0 {
 		for i := 0; i < n; i++ {
-			runnableJobs[i].run()
+			runnableJobs[i].Run()
 		}
 	}
 }
@@ -421,14 +424,14 @@ func (s *Scheduler) RunPending() {
 // Run all jobs regardless if they are scheduled to run or not
 func (s *Scheduler) RunAll() {
 	for i := 0; i < s.size; i++ {
-		s.Jobs[i].run()
+		s.Jobs[i].Run()
 	}
 }
 
 // Run all jobs with delay seconds
 func (s *Scheduler) RunAllwithDelay(d int) {
 	for i := 0; i < s.size; i++ {
-		s.Jobs[i].run()
+		s.Jobs[i].Run()
 		time.Sleep(time.Duration(d))
 	}
 }
@@ -484,8 +487,8 @@ var defaultScheduler = NewScheduler()
 var jobs = defaultScheduler.Jobs
 
 // Schedule a new periodic job
-func Every(interval uint64) *Job {
-	return defaultScheduler.Every(interval)
+func Every(interval uint64, jobID int) *Job {
+	return defaultScheduler.Every(interval, jobID)
 }
 
 // Run all jobs that are scheduled to run
